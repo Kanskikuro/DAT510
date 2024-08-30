@@ -1,0 +1,5 @@
+#!d:\DAT510\.venv\Scripts\python.exe
+from caesarcipher.cmdline import main
+
+if __name__ == '__main__':
+    main()
