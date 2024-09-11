@@ -4,12 +4,13 @@ import string
 from caesarcipher import CaesarCipher
 
 #Values
-plainText = "Hoang-Ny William Nguyen Vo Security and Vulnerability in Networks"
+plainText = "Boang-Ny William Nguyen Vo Security and Vulnerability in Networks"
 
 CaeserKey =	24
 NumericKey = 24513
 
-#functions
+#tutorial on transposistion 
+#https://www.geeksforgeeks.org/columnar-transposition-cipher/
 def transpositionCipher(key,textInput):
     #Calculates variables for matrix size from the key
     keyLength = len(str(NumericKey))
