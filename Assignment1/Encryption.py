@@ -3,6 +3,8 @@ import random
 import string
 import time
 from caesarcipher import CaesarCipher
+import matplotlib.pyplot as plt
+import numpy as np
 
 #Inital Values
 plainText = "Hoang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
@@ -25,7 +27,7 @@ def transpositionCipher(key,textInput):
     for _ in range(remainder):
         ranLetter = random.choice(string.ascii_lowercase)
         #appends a letter the remainder amount of times to fill out the matrix
-        textList.append("x")
+        textList.append('x')
     
     #Create creating a matrix and inputting textInput
     matrix = [textList[i: i + keyLength]
@@ -69,7 +71,26 @@ def binaryDiff(a,b):
 
 #how to measure elapsed time
 #https://www.programiz.com/python-programming/examples/elapsed-time
+#plotting
+#https://www.w3schools.com/python/matplotlib_plotting.asp
+
+x = np.array([])
+y = np.array([])
+
 start = time.time()
-for _ in range(16):
+for i in range(20):
     plainTextFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded).lower().replace(" ", "")
-    print( plainTextFlipped + ' ' + str(time.time()-start) + ' ' + str(binaryDiff(plainTextFlipped,OptionB)))
+    print( plainTextFlipped + ' ' + str(binaryDiff(plainTextFlipped,plainText))  + ' ' + str(time.time()-start))
+    
+    #t = (time.time()-start)
+    #x = np.append(x,t)
+    
+    #percent = binaryDiff(plainTextFlipped,OptionB)
+    #y = np.append(y,percent)
+
+
+
+#plt.plot(x)
+#plt.xlabel("Iterations")
+#plt.ylabel("Differentiating bits in %")
+#plt.show()
