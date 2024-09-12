@@ -5,6 +5,9 @@ import time
 from caesarcipher import CaesarCipher
 import matplotlib.pyplot as plt
 import numpy as np
+from Crypto.Cipher import AES
+import os
+
 
 #Inital Values
 plainText = "Hoang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
@@ -61,6 +64,7 @@ def binaryConv(text):
 #How to count ones in binary and count ones in binary
 #https://www.geeksforgeeks.org/count-set-bits-using-python-list-comprehension/
 #https://stackoverflow.com/questions/19414093/how-to-xor-binary-with-python
+
 def binaryDiff(a,b):
     a=binaryConv(a)
     b=binaryConv(b)
@@ -78,9 +82,9 @@ x = np.array([])
 y = np.array([])
 
 start = time.time()
-for i in range(20):
-    plainTextFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded).lower().replace(" ", "")
-    print( plainTextFlipped + ' ' + str(binaryDiff(plainTextFlipped,plainText))  + ' ' + str(time.time()-start))
+for _ in range(20):
+    plainTextFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded)
+    #print( plainTextFlipped + ' ' + str(binaryDiff(plainTextFlipped,plainText))  + ' ' + str(time.time()-start))
     
     #t = (time.time()-start)
     #x = np.append(x,t)
@@ -94,3 +98,29 @@ for i in range(20):
 #plt.xlabel("Iterations")
 #plt.ylabel("Differentiating bits in %")
 #plt.show()
+
+#-----------------Task5-----------------------------
+#CTR
+#https://onboardbase.com/blog/aes-encryption-decryption/
+
+
+key = os.urandom(16)
+cipher = AES.new(key, AES.MODE_CTR)
+cipher_text = cipher.encrypt(OptionB.encode())
+nonce = cipher.nonce
+
+decrypt_cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
+plain_text = decrypt_cipher.decrypt(cipher_text)
+
+#converts from byte to bit string
+byteBit = ''.join(f'{byte:08b}' for byte in cipher_text)
+
+for _ in range(20):
+    key = os.urandom(16)
+    cipher = AES.new(key, AES.MODE_CTR)
+    cipher_text = cipher.encrypt(OptionBFlipped.encode())
+    cipher_text = ''.join(f'{byte:08b}' for byte in cipher_text)
+    
+    print(str(binaryDiff(cipher_text,OptionB)))
+
+
