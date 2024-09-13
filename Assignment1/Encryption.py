@@ -8,7 +8,6 @@ import numpy as np
 from Crypto.Cipher import AES
 import os
 
-
 #Initial Values
 plainText = "Hoang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
 CaesarKey =	24
@@ -30,7 +29,7 @@ def transpositionCipher(key,textInput):
     for _ in range(remainder):
         ranLetter = random.choice(string.ascii_lowercase)
         #appends a letter the remainder amount of times to fill out the matrix
-        textList.append('x')
+        textList.append('')
     
     #Create creating a matrix and inputting textInput
     matrix = [textList[i: i + keyLength]
@@ -53,24 +52,24 @@ OptionB = transpositionCipher(NumericKey, CaesarCipher(plainText, offset=24).enc
 
 
 #--------------Task2---------------------------------------------------------------------------------------------------------
-plainTextFlipped = "Boang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
-OptionBFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded)
-
+#These are not used, because its not correct. Shows 30% when it should be single digit
 #How to convert string to binary
 #https://stackoverflow.com/questions/18815820/how-to-convert-string-to-binary
-def binaryConv(text):
-    res = ''.join(format(ord(i), '08b') for i in text)
-    return res
+# def binaryConv(text):
+#     res = ''.join(format(ord(i), '08b') for i in text)
+#     return res
 #How to count ones in binary and count ones in binary
 #https://www.geeksforgeeks.org/count-set-bits-using-python-list-comprehension/
 #https://stackoverflow.com/questions/19414093/how-to-xor-binary-with-python
-def binaryDiff(a,b):
-    a=binaryConv(a)
-    b=binaryConv(b)
-    
-    Xor = int(a,2) ^ int(b,2)
-    diffCount = '{0:b}'.format(Xor).count("1")
-    return (diffCount/len(a))*100
+# def binaryDiff(a,b):
+#     a=binaryConv(a)
+#     b=binaryConv(b)
+#     Xor = int(a,2) ^ int(b,2)
+#     diffCount = '{0:b}'.format(Xor).count("1")
+#     return (diffCount/len(a))*100
+
+plainTextFlipped = "Boang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
+OptionBFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded)
 
 #comparing letters
 #https://stackoverflow.com/questions/35328953/how-to-compare-individual-characters-in-two-strings-in-python-3
@@ -81,57 +80,67 @@ def avalanche(a,b):
             l=l+1
     return (l/len(a))*100
 
+def avalacheBits(cipher1: bytes, cipher2: bytes) -> float:
+    differing_bits = 0
+    total_bits = len(cipher1) * 8
 
-#how to measure elapsed time
-#https://www.programiz.com/python-programming/examples/elapsed-time
+    for byte1, byte2 in zip(cipher1, cipher2):
+        differing_bits += bin(byte1 ^ byte2).count('1')
+
+    return (differing_bits / total_bits) * 100
+
 #plotting
 #https://www.w3schools.com/python/matplotlib_plotting.asp
-
 x = np.array([])
 y = np.array([])
-
+#how to measure elapsed time
+#https://www.programiz.com/python-programming/examples/elapsed-time
 start = time.time()
-for _ in range(20):
+for _ in range(1):
     plainTextFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded)
-    #print(str(avalanche(plainTextFlipped,plainText))  + ' ' + str(time.time()-start))
+    #print(plainTextFlipped + ' ' + str(avalanche(plainTextFlipped,optionB))  + ' ' + str(time.time()-start))
     
-    #t = (time.time()-start)
-    #x = np.append(x,t)
+    flipByte = plainTextFlipped.encode('utf-8')
+    originalByte = OptionB.encode('utf8')
     
-    #percent = binaryDiff(plainTextFlipped,OptionB)
-    #y = np.append(y,percent)
+    print(avalacheBits(flipByte,originalByte))
+    
+    
+    t = (time.time()-start)
+   
+    percent = avalanche(plainTextFlipped,OptionB)
+    y = np.append(y,percent)
+    x = np.append(x,t)
 
-
-
-#plt.plot(x)
-#plt.xlabel("Iterations")
-#plt.ylabel("Differentiating bits in %")
+#the first element in the list is bugged. It shows the 98, when avg is 3
+x=x[1:]
+y=y[1:]
+    
+plt.plot(y)
+plt.xlabel("Iteration")
+plt.ylabel("Differentiating bits in %")
 #plt.show()
-
 #-----------------Task5-----------------------------
 #CTR
+#uses the information on creating keys and counter/nonce, not tutorial
 #https://onboardbase.com/blog/aes-encryption-decryption/
 
-#no aes
-key = os.urandom(16)
-cipher = AES.new(key, AES.MODE_CTR)
-cipher_text = cipher.encrypt(OptionB.encode())
-nonce = cipher.nonce
+def divideString(string, block_size):
+    return [string[i:i + block_size] for i in range(0, len(string), block_size)]
 
-decrypt_cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
-plain_text = decrypt_cipher.decrypt(cipher_text)
+def CTR(input):
+    counter = 0
+    nonce = os.urandom(int(len(input)/3)) #8/8, one letter is 8 bits, I want to have 8 blocks
+    plainTextByte = input.encode('utf-8')
+    cipher = b""
+    blocks = divideString(input,int(len(input)/3))
+    for i in range(len(blocks)):
+        blocks[i] = transpositionCipher(NumericKey, CaesarCipher(blocks[i], offset=24).encoded)
+        counterNonce = nonce + counter.to_bytes(8, byteorder='big')
+        counter=+1
+        Xor = bytes(a ^ b for a, b in zip(counterNonce, blocks[i].encode('utf-8')))
+        cipher += Xor
+    return cipher
 
-#converts from byte to bit string
-byteBit = ''.join(f'{byte:08b}' for byte in cipher_text)
-
-for _ in range(20):
-    key = os.urandom(16)
-    cipher = AES.new(key, AES.MODE_CTR)
-    cipher_text = cipher.encrypt(OptionBFlipped.encode())
-
-    cipher_text = cipher_text.decode("utf-8", errors="ignore")
-    
-
-    print(avalanche(cipher_text,OptionB))
-    print(cipher_text)
-
+for _ in range(0):
+    print(avalacheBits(CTR(plainText),OptionB.encode('utf-8')))
