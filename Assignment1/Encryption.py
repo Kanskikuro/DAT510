@@ -9,9 +9,9 @@ from Crypto.Cipher import AES
 import os
 
 
-#Inital Values
+#Initial Values
 plainText = "Hoang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
-CaeserKey =	24
+CaesarKey =	24
 NumericKey = 24513
 
 
@@ -64,7 +64,6 @@ def binaryConv(text):
 #How to count ones in binary and count ones in binary
 #https://www.geeksforgeeks.org/count-set-bits-using-python-list-comprehension/
 #https://stackoverflow.com/questions/19414093/how-to-xor-binary-with-python
-
 def binaryDiff(a,b):
     a=binaryConv(a)
     b=binaryConv(b)
@@ -72,6 +71,16 @@ def binaryDiff(a,b):
     Xor = int(a,2) ^ int(b,2)
     diffCount = '{0:b}'.format(Xor).count("1")
     return (diffCount/len(a))*100
+
+#comparing letters
+#https://stackoverflow.com/questions/35328953/how-to-compare-individual-characters-in-two-strings-in-python-3
+def avalanche(a,b):
+    l = 0
+    for x, y in zip(a, b):
+        if x == y:
+            l=l+1
+    return (l/len(a))*100
+
 
 #how to measure elapsed time
 #https://www.programiz.com/python-programming/examples/elapsed-time
@@ -84,7 +93,7 @@ y = np.array([])
 start = time.time()
 for _ in range(20):
     plainTextFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded)
-    #print( plainTextFlipped + ' ' + str(binaryDiff(plainTextFlipped,plainText))  + ' ' + str(time.time()-start))
+    #print(str(avalanche(plainTextFlipped,plainText))  + ' ' + str(time.time()-start))
     
     #t = (time.time()-start)
     #x = np.append(x,t)
@@ -103,7 +112,7 @@ for _ in range(20):
 #CTR
 #https://onboardbase.com/blog/aes-encryption-decryption/
 
-
+#no aes
 key = os.urandom(16)
 cipher = AES.new(key, AES.MODE_CTR)
 cipher_text = cipher.encrypt(OptionB.encode())
@@ -119,8 +128,10 @@ for _ in range(20):
     key = os.urandom(16)
     cipher = AES.new(key, AES.MODE_CTR)
     cipher_text = cipher.encrypt(OptionBFlipped.encode())
-    cipher_text = ''.join(f'{byte:08b}' for byte in cipher_text)
-    
-    print(str(binaryDiff(cipher_text,OptionB)))
 
+    cipher_text = cipher_text.decode("utf-8", errors="ignore")
+    
+
+    print(avalanche(cipher_text,OptionB))
+    print(cipher_text)
 
