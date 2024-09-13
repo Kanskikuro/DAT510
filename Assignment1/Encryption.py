@@ -13,11 +13,13 @@ plainText = "Hoang-Ny William Nguyen Vo Security and Vulnerability in Networks".
 CaesarKey =	24
 NumericKey = 24513
 
-
 #---------------Task1---------------------------------------------------------------------------------------------------------------------
+
+#Caesar cipher is imported as a library
 
 #tutorial on how to make a transposition cipher
 #https://www.geeksforgeeks.org/columnar-transposition-cipher/
+
 def transpositionCipher(key,textInput):
     #Calculates variables for matrix size from the key
     keyLength = len(str(NumericKey))
@@ -29,7 +31,7 @@ def transpositionCipher(key,textInput):
     for _ in range(remainder):
         ranLetter = random.choice(string.ascii_lowercase)
         #appends a letter the remainder amount of times to fill out the matrix
-        textList.append('')
+        textList.append(ranLetter)
     
     #Create creating a matrix and inputting textInput
     matrix = [textList[i: i + keyLength]
@@ -52,21 +54,12 @@ OptionB = transpositionCipher(NumericKey, CaesarCipher(plainText, offset=24).enc
 
 
 #--------------Task2---------------------------------------------------------------------------------------------------------
-#These are not used, because its not correct. Shows 30% when it should be single digit
+#These are not used, because they were not correct. However the knowledge is used
 #How to convert string to binary
 #https://stackoverflow.com/questions/18815820/how-to-convert-string-to-binary
-# def binaryConv(text):
-#     res = ''.join(format(ord(i), '08b') for i in text)
-#     return res
 #How to count ones in binary and count ones in binary
 #https://www.geeksforgeeks.org/count-set-bits-using-python-list-comprehension/
 #https://stackoverflow.com/questions/19414093/how-to-xor-binary-with-python
-# def binaryDiff(a,b):
-#     a=binaryConv(a)
-#     b=binaryConv(b)
-#     Xor = int(a,2) ^ int(b,2)
-#     diffCount = '{0:b}'.format(Xor).count("1")
-#     return (diffCount/len(a))*100
 
 plainTextFlipped = "Boang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
 OptionBFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded)
@@ -80,7 +73,7 @@ def avalanche(a,b):
             l=l+1
     return (l/len(a))*100
 
-def avalacheBits(cipher1: bytes, cipher2: bytes) -> float:
+def avalancheBits(cipher1: bytes, cipher2: bytes) -> float:
     differing_bits = 0
     total_bits = len(cipher1) * 8
 
@@ -96,14 +89,13 @@ y = np.array([])
 #how to measure elapsed time
 #https://www.programiz.com/python-programming/examples/elapsed-time
 start = time.time()
-for _ in range(1):
+for _ in range(20):
     plainTextFlipped = transpositionCipher(NumericKey, CaesarCipher(plainTextFlipped, offset=24).encoded)
-    #print(plainTextFlipped + ' ' + str(avalanche(plainTextFlipped,optionB))  + ' ' + str(time.time()-start))
+    #print( str(avalanche(plainTextFlipped,OptionB))  + ' ' + str(time.time()-start))
     
     flipByte = plainTextFlipped.encode('utf-8')
     originalByte = OptionB.encode('utf8')
-    
-    print(avalacheBits(flipByte,originalByte))
+    print(avalancheBits(flipByte,originalByte))
     
     
     t = (time.time()-start)
@@ -112,7 +104,7 @@ for _ in range(1):
     y = np.append(y,percent)
     x = np.append(x,t)
 
-#the first element in the list is bugged. It shows the 98, when avg is 3
+#the first element in the list is super inflated. It shows the 98, when avg is 3
 x=x[1:]
 y=y[1:]
     
@@ -130,11 +122,12 @@ def divideString(string, block_size):
 
 def CTR(input):
     counter = 0
-    nonce = os.urandom(int(len(input)/3)) #8/8, one letter is 8 bits, I want to have 8 blocks
+    nonce = os.urandom(int(len(input)/3)) #3 blocks
     plainTextByte = input.encode('utf-8')
     cipher = b""
     blocks = divideString(input,int(len(input)/3))
     for i in range(len(blocks)):
+        #encrypts the block of plaintext
         blocks[i] = transpositionCipher(NumericKey, CaesarCipher(blocks[i], offset=24).encoded)
         counterNonce = nonce + counter.to_bytes(8, byteorder='big')
         counter=+1
@@ -142,5 +135,5 @@ def CTR(input):
         cipher += Xor
     return cipher
 
-for _ in range(0):
-    print(avalacheBits(CTR(plainText),OptionB.encode('utf-8')))
+for _ in range(20):
+    print(avalancheBits(CTR(plainText),OptionB.encode('utf-8')))
