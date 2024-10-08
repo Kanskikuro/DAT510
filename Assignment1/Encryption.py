@@ -123,7 +123,7 @@ def divideString(string, block_size):
 def CTR(input):
     counter = 0
     nonce = os.urandom(int(len(input)/3)) #3 blocks
-    plainTextByte = input.encode('utf-8')
+    #plainTextByte = input.encode('utf-8')
     cipher = b""
     blocks = divideString(input,int(len(input)/3))
     for i in range(len(blocks)):
