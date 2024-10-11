@@ -2,13 +2,8 @@
 # Alice and Bob agreed to share public parameters p and g for the Diffie-Hellman protocol
 # p is a large prime number and g is a generator, which is a primitive root mod p
 
-import os
+from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES
-import numpy as np
-import matplotlib.pyplot as plt
-from caesarcipher import CaesarCipher
-import time
-import string
 import random
 import math
 import hashlib
@@ -29,14 +24,49 @@ def diffHellman(p, g, a, b):
     # Secret key
     S = pow(A, b, p)
     S = S.to_bytes((S.bit_length() + 7) // 8, byteorder='big')
-    #print(A,B,S)
+    # print(A,B,S)
     return A, B, S
 
 # The A, B and S are correct.
 # This means the diffiehellman is implemented correctly, if the lecture example is correct.
 # ------------------------------------------Task 2------------------------------------------
+# This HMAC with XOR as hash
 
 
+def xor(a, b):
+    # Checks for length and takes the smallest one
+    length = min(len(a), len(b))
+    return bytes([b1 ^ b2 for b1, b2 in zip(a[:length], b[:length])])
+
+
+def hmacXor(key, msg):
+    # HMAC(K, m) = hash ((K′ ⊕ opad) ∥ hash ((K′ ⊕ ipad) ∥ m))
+    blockSize = 64  # 1600 bits
+
+    # K'
+    # Check if the secret key is too long or too short
+    if len(key) > blockSize:
+        # Xor will not make the key shorter,
+        # so the key is truncated to the blockSize
+        key = key[:blockSize]
+    if len(key) < blockSize:
+        # Pad the key with 0 bytes to match blockSize
+        key = key.ljust(blockSize, b'\0')
+
+    # ipad and opad
+    ipad = bytes((x ^ 0x36) for x in key)
+    opad = bytes((x ^ 0x5c) for x in key)
+
+    # XOR ((K′ ⊕ ipad) ∥ m)
+    ixor = xor(ipad, msg)
+
+    # XOR ((K′ ⊕ opad) ∥ inner_xor)
+    oxor = xor(opad, ixor)
+
+    return oxor
+
+
+# This HMAC improves on the HMAC given by the task by using SHA instead of Xor
 def hmac(key, msg):
     # HMAC(K, m) = hash ((K′ ⊕ opad) ∥ hash ((K′ ⊕ ipad) ∥ m))
 
@@ -61,113 +91,55 @@ def hmac(key, msg):
     return oHash
 
 
-def hmacVerify(key, msg, hmacMsg):
-    return hmac(key, msg,) == hmacMsg
+def hmacVerify(key, msg, tag):
+    return hmac(key, msg,) == tag
 
 
 msg = b"hello world"
 pubA, pubB, SecKey = diffHellman(p, g, a, b)
 
-# print(hmacVerify(key_bytes, msg, hmac(key_bytes, msg)))
+# Testing HMAC
+# print(hmacVerify(SecKey, msg, hmac(SecKey, msg)))
+# print(hmacVerify(SecKey, msg, hmac(SecKey, b"hello worll")))
+
+# print(hmacXor(SecKey, msg) == hmacXor(SecKey, msg))
+# print(hmacXor(SecKey, msg) == hmacXor(SecKey, b"hello worll"))
 
 # ---------------------------------- Task 3 -------------------------------------------
-# -------------------Assignmen 1 Task 5
-# Initial Values
-plainText = "Hoang-Ny William Nguyen Vo Security and Vulnerability in Networks".lower().replace(" ", "")
-CaesarKey = 24
-NumericKey = 24513
+# encryption from task 3 was not implemented correctly, so AES is used instead
+# https://onboardbase.com/blog/aes-encryption-decryption/
 
 
-def transpositionCipher(key, textInput):
-    # Calculates variables for matrix size from the key
-    keyLength = len(str(key))
-    row = int(math.ceil(len(textInput)/keyLength))
+def aesEncryption(SecKey, msg):
+    # A new key. Reusing the same key is not secure
+    aesKey = get_random_bytes(16)
 
-    # Adding random letters to fill out the matrix
-    textList = list(textInput)
-    remainder = int((row * keyLength) - len(textInput))
-    for _ in range(remainder):
-        ranLetter = random.choice(string.ascii_lowercase)
-        # Appends a letter the remainder amount of times to fill out the matrix
-        textList.append(ranLetter)
-
-    # Create a matrix and inputting textInput
-    matrix = [textList[i: i + keyLength]
-              for i in range(0, len(textList), keyLength)]
-
-    k = 0
-    cipher = ""
-    digitList = [int(digit) for digit in str(key)]
-    # Reading the matrix with the numeric key order
-    for _ in range(keyLength):
-        # The digit value is the index of the order
-        curr_idx = (digitList[k]) - 1
-        cipher += ''.join([row[curr_idx] for row in matrix])
-        k += 1
-    return cipher
+    cipher = AES.new(aesKey, AES.MODE_EAX)
+    hmac(SecKey, msg)
+    ciphertext = cipher.encrypt(msg+hmac(SecKey, msg))
+    nonce = cipher.nonce
+    return ciphertext, nonce, aesKey
 
 
-def divideString(string, block_size):
-    return [string[i:i + block_size] for i in range(0, len(string), block_size)]
+def aesDecrypt(ciphertext, aesKey, nonce):
+    cipher = AES.new(aesKey, AES.MODE_EAX, nonce)
+    data = cipher.decrypt(ciphertext)
+    # Knows the size of HMAC, 64 bytes
+    msgDecrypted = data[:-32]
+    tag = data[len(msg):]
+    return msgDecrypted, tag
 
 
-def CTR(input):
-    counter = 0
-    nonce = os.urandom(8)  # Generate a random nonce
-    cipher = b""
-    blocks = divideString(input, int(len(input)/3))
+msg = b'hello world'
+ciphertext, nonce, aesKey = aesEncryption(SecKey, msg)
+msgDecrypt, tag = aesDecrypt(ciphertext, aesKey, nonce)
 
-    for i in range(len(blocks)):
-        # Encrypts the block of plaintext
-        blocks[i] = transpositionCipher(
-            NumericKey, CaesarCipher(blocks[i], CaesarKey).encode)
+# print(hmacVerify(SecKey, msg, tag))
 
-        counterNonce = nonce + counter.to_bytes(8, byteorder='big')
-        counter += 1
-
-        # XOR operation to encrypt
-        Xor = bytes(a ^ b for a, b in zip(
-            counterNonce, blocks[i].encode('utf-8')))
-        cipher += Xor
-    return nonce + cipher
-
-
-def CTRDecrypt(input):
-    nonce = input[:8]  # Extract nonce from the input
-    input = input[8:]  # Remove nonce from the input
-    counter = 0
-    decryptedText = ""
-
-    block_size = int(len(input) / 3)
-    blocks = divideString(input, block_size)
-
-    for i in range(len(blocks)):
-        counterNonce = nonce + counter.to_bytes(8, byteorder='big')
-        counter += 1
-
-        # XOR to decrypt
-        Xor = bytes(a ^ b for a, b in zip(
-            counterNonce, blocks[i].decode('utf-8')))
-
-        try:
-            decryptedBlock = Xor.decode('utf-8')  # Decode the XOR result
-            # Reverse the transposition applied earlier
-            decryptedText += CaesarCipher(decryptedBlock,
-                                          shift=-CaesarKey).decode()
-        except UnicodeDecodeError:
-            print(f"Error decoding block {i}: {Xor}")
-
-    return decryptedText
-
-
-# encryption = CTR(plainText)
-# decryption = CTRDecrypt(encryption)
-# print(decryption)
 # ------------------------Task 4------------------------------------------
-
-
-# step 1
+# step 1, Diff-Hellman key exchange
 pubA, pubB, SecKey = diffHellman(p, g, a, b)
+
 msg = b"helloworld"
 hmac(SecKey, msg)
 # secKey is the initial chain key
@@ -188,24 +160,57 @@ for i in range(5):
     # print(randByt, end="\t")
 
 
-def chainHMAC(chainKey, type):
+def chainHMAC(chainKey, input):
     # to create a new key each time,
     # adding the prng in bytes to the previous key
     # initial is diffie hellman
-    if type == "ratchet":
+    if input == "ratchet":
         rand = random.randint(0, 10)
         randByt = rand.to_bytes((rand.bit_length() + 7) // 8, byteorder='big')
         # adding chainkey to the randbyte to create a new messagekey
         # print(chainKey, randByt , chainKey+randByt)
         return chainKey+randByt
     else:
-        return hmac(chainKey, type)
+        return aesEncryption(chainKey, input)
+
 
 chainKey = SecKey
 for i in range(5):
     chainKey = chainHMAC(chainKey, "ratchet")
-    res = chainHMAC(chainKey, b"hello world")
-    print(res)
+    ciphertext, nonce, aesKey = chainHMAC(chainKey, b"hello")
+    msgDecrypt, tag = aesDecrypt(ciphertext, aesKey, nonce)
+    # print(msgDecrypt)
+    # print(tag)
+
+
+# Improving on the task
+# The seed will be made the same way since it was a good solution to create a secure shared seed key
+random.seed(seedKey)
+
+# the improved task will mostly be the same.
+# mostly integrating the singleratchet so its one function, instead of two.
+
+
+def singleRat(chainKey, input):
+    # from testing, the random int should be bigger to avoid collision
+    # the key should match the size
+    # this does not completely avoid collision. Its better to use better PRNG algorisms
+    # random.randint() is the most simple PRNG
+    rand = random.randint(0, 1000)
+    randByt = rand.to_bytes((rand.bit_length() + 7) // 8, byteorder='big')
+    # simple xor encryption of the key
+    chainKey = xor(chainKey, randByt)
+
+    return aesEncryption(chainKey, input)
+
+
+chainKey = SecKey
+byteList = [b'this', b'is', b'a', b'test', b'!']
+for i in range(5):
+    chipertext, nonce, aesKey = singleRat(chainKey, byteList[i])
+    msgDecrypt, tag = aesDecrypt(chipertext, aesKey, nonce)
+    # print(msgDecrypt)
+    print(tag)
 
 # --------------------------------Task 5------------------------------------
 # first, make functions that create new prime and base for Diffie-hellman key exchange
@@ -234,8 +239,8 @@ def primRoots(modulo):
             for powers in range(1, modulo)}][0]
 
 
-# Generates new prime
-primes = [i for i in range(0, 100) if isPrime(i)]
+# Generates new prime, then randomly picks
+primes = [i for i in range(0, 1000) if isPrime(i)]
 
 # n = random.choice(primes)
 # m = primRoots(n)
@@ -267,3 +272,28 @@ for i in range(20):
 
     chainKey, msgTag = doubleRatchet(chainKey, b"hello world")
     # print(chainKey, msgTag)
+
+# Improving task
+# same improvements from task 4, removing unnecessary labels and make it to one function instead of 3 different steps
+# Keeping it simple by letting in a iteration input
+# still using isprime, gcd and primeroots as a solution to make new public keys -> new shared keys
+
+
+def doubleRat(chainKey, input, iteration):
+    if iteration % 5 == 0:
+        n = random.choice(primes)
+        m = primRoots(n)
+        _, _, rootKey = diffHellman(n, m, a, b)
+        chainKey = rootKey
+        print("new Root key")
+
+    return singleRat(chainKey, input)
+
+chainKey = SecKey
+byteList = [b'this', b'is', b'a', b'test', b'!']
+for i in range(20):
+    ciphertext, nonce, aesKey = doubleRat(chainKey, byteList[i%5], i)
+    msg, tag = aesDecrypt(ciphertext, aesKey, nonce)
+    #print(msg)
+    #print(ciphertext)
+    print(tag)
