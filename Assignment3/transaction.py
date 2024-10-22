@@ -15,11 +15,13 @@ class Transaction:
         signature=None,
     ):
         self.sender_address = (
-            sender_address  # Address of the sender (public key or wallet address)
+            # Address of the sender (public key or wallet address)
+            sender_address
         )
         self.recipient_address = recipient_address  # Address of the recipient
         self.amount = amount  # Amount to transfer
-        self.sender_public_key = sender_public_key  # Sender's public key (hex string)
+        # Sender's public key (hex string)
+        self.sender_public_key = sender_public_key
         self.signature = signature  # Digital signature (hex string)
 
     def __str__(self):
@@ -61,7 +63,7 @@ class Transaction:
         Sign the transaction using the sender's private key.
 
         Steps:
-        - Compute the hash of the transaction (self.comput_hash()).
+        - Compute the hash of the transaction (self.compute_hash()).
         - Convert the private key from hex to bytes.
         - Create a SigningKey object using the private key and SECP256k1 curve.
         - Sign the transaction hash (utf-8) using deterministic ECDSA signing.
@@ -70,8 +72,14 @@ class Transaction:
         Note:
         - Use the sign_deterministic method to ensure consistent signatures for testing.
         """
-        # TODO: Implement the signing logic
-        pass
+        # TODO: Implement the signing logic (Implemented!)
+        transaction_hash = self.compute_hash()
+        private_key_bytes = bytes.fromhex(private_key)
+        signing_key_obj = ecdsa.SigningKey.from_string(
+            private_key_bytes, curve=ecdsa.SECP256k1)
+        signature = signing_key_obj.sign_deterministic(
+            transaction_hash.encode('utf-8'))
+        self.signature = signature.hex()
 
     def is_valid(self):
         """
@@ -92,5 +100,22 @@ class Transaction:
         - If any error occurs during verification (e.g., invalid signature format),
           catch the exception and return False.
         """
-        # TODO: Implement the verification logic
-        pass
+        # TODO: Implement the verification logic (Implemented!)
+        try:
+            if self.sender_address == "0":
+                return True
+
+            if not self.signature or not self.sender_public_key:
+                return False
+
+            sender_public_key_bytes = bytes.fromhex(self.sender_public_key)
+            signature_bytes = bytes.fromhex(self.signature)
+            verifying_key_obj = ecdsa.VerifyingKey.from_string(
+                sender_public_key_bytes, curve=ecdsa.SECP256k1)
+            transaction_hash = self.compute_hash()
+            verifying_key_obj.verify(
+                signature_bytes, transaction_hash.encode('utf-8'))
+            return True
+
+        except (ecdsa.BadSignatureError, ValueError, TypeError):
+            return False

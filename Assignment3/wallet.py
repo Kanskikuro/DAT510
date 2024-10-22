@@ -1,5 +1,6 @@
 from transaction import Transaction
 import ecdsa
+from ecdsa import SigningKey
 import binascii
 
 
@@ -29,10 +30,18 @@ class Wallet:
         - Convert the bytes to a hex string.
         - Return the hex string representation (utf-8) of the private key.
         """
-        # TODO: Implement private key generation
-        pass
+        # TODO: Implement private key generation (Implemented!)
 
-    @staticmethod
+        # documentation from: https://pypi.org/project/ecdsa/
+        # Assumes the signingkey is the private key in this scenario
+
+        private_key = SigningKey.generate(curve=ecdsa.SECP256k1)
+        private_key_string = private_key.to_string()
+        private_key_hex = private_key_string.hex()
+
+        return private_key_hex
+
+    @ staticmethod
     def get_public_key(private_key_hex):
         """
         Derive the public key from the private key.
@@ -45,8 +54,16 @@ class Wallet:
         - Convert the bytes to a hex string.
         - Return the hex string representation (utf-8) of the public key.
         """
-        # TODO: Implement public key derivation
-        pass
+        # TODO: Implement public key derivation (Implemented!)
+
+        private_key_bytes = bytes.fromhex(private_key_hex)
+        signing_key = SigningKey.from_string(
+            private_key_bytes, curve=ecdsa.SECP256k1)
+        public_key = signing_key.verifying_key
+        public_key_string = public_key.to_string()
+        public_key_bytes = public_key_string.hex()
+
+        return public_key_bytes
 
     def create_transaction(self, recipient_address, amount):
         """
@@ -58,5 +75,10 @@ class Wallet:
         - Sign the transaction using the sender's private key.
         - Return the signed transaction.
         """
-        # TODO: Implement transaction creation and signing
-        pass
+        # TODO: Implement transaction creation and signing (Implemented!)
+
+        transaction_obj = Transaction(
+            self.address, recipient_address, amount, self.public_key, self.private_key)
+        transaction_obj.sign_transaction(self.private_key)
+        #check for transaction.is_valid?
+        return transaction_obj

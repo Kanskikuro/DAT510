@@ -15,7 +15,8 @@ class Blockchain:
 
     def __str__(self):
         blockchain_summary = (
-            f"Blockchain(length={len(self.chain)}, difficulty={self.difficulty})\n"
+            f"Blockchain(length={len(self.chain)}, difficulty={
+                self.difficulty})\n"
         )
         blockchain_summary += "Blocks:\n"
         for block in self.chain:
@@ -69,8 +70,18 @@ class Blockchain:
             - Recompute the hash.
         - Once a valid hash is found, update the block's hash and return the hash.
         """
-        # TODO: Implement the proof-of-work algorithm
-        pass
+        # TODO: Implement the proof-of-work algorithm (implemented!)
+
+        block.nonce = 0
+        block_hash = block.compute_hash()
+        target_prefix = '0' * self.difficulty
+        
+        while (not block_hash.startswith(target_prefix)):
+            block.nonce += 1
+            block_hash = block.compute_hash()
+        block.hash = block_hash
+        
+        return block_hash
 
     def add_block(self, block, proof):
         """
@@ -84,8 +95,17 @@ class Blockchain:
         - Append the block to the chain.
         - Return True to indicate success.
         """
-        # TODO: Implement block validation and addition to the chain
-        pass
+        # TODO: Implement block validation and addition to the chain (implemented!)
+
+        if not self.last_block.hash == block.previous_hash:
+            return False
+        
+        if not self.is_valid_proof(block, proof):
+            return False
+        
+        self.chain.append(block)
+        
+        return True
 
     def is_valid_proof(self, block, block_hash):
         """
@@ -96,8 +116,16 @@ class Blockchain:
         - Recompute the hash of the block and compare it with block_hash.
         - Return True if both conditions are met; otherwise, return False.
         """
-        # TODO: Implement proof-of-work validation
-        pass
+        # TODO: Implement proof-of-work validation (implemented!)
+        target_prefix = '0' * self.difficulty
+
+        if not block_hash.startswith(target_prefix):
+            return False
+        
+        if not block.compute_hash().startswith(target_prefix):
+            return False
+        
+        return True
 
     def mine(self):
         """
@@ -115,8 +143,28 @@ class Blockchain:
             - If max_transactions_per_block is None, break after mining one block.
         - Return the index of the last mined block.
         """
-        # TODO: Implement the mining process
-        pass
+        # TODO: Implement the mining process (implemented!)
+        
+        if not self.unconfirmed_transactions:
+            return False
+        
+        while self.unconfirmed_transactions:
+            transactions_to_mine = self.unconfirmed_transactions[:self.max_transactions_per_block]
+            
+            valid_transactions = []
+            for transaction in transactions_to_mine:
+                if transaction.is_valid():
+                    valid_transactions.append(transaction)
+                    
+            new_block = Block(len(self.chain), valid_transactions, self.last_block.hash)
+            proof = self.proof_of_work(new_block)
+            self.add_block(new_block, proof)
+            self.unconfirmed_transactions = self.unconfirmed_transactions[len(valid_transactions):]
+            
+            if self.max_transactions_per_block is None:
+                break
+        return new_block.index
+        
 
     def is_chain_valid(self):
         """
@@ -134,7 +182,20 @@ class Blockchain:
         - If all checks pass, return True.
         """
         # TODO: Implement blockchain validation
-        pass
+        
+        for i in range(1, len(self.chain)):
+            curr_block = self.chain[i]
+            prev_block = self.chain[i-1]
+            if curr_block.hash != curr_block.compute_hash():
+                return False
+            if curr_block.previous_hash != prev_block.hash:
+                return False
+            for transaction in curr_block.transactions:
+                if not transaction.is_valid():
+                    return False
+            
+            return True
+            
 
     def is_transaction_in_block(self, transaction, block_index):
         # First, check if the block index is valid
