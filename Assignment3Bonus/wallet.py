@@ -78,7 +78,7 @@ class Wallet:
         # TODO: Implement transaction creation and signing (Implemented!)
 
         transaction_obj = Transaction(
-            self.address, recipient_address, amount, self.public_key)
+            self.address, recipient_address, amount, self.public_key, self.private_key)
         transaction_obj.sign_transaction(self.private_key)
         #check for transaction.is_valid?
         return transaction_obj

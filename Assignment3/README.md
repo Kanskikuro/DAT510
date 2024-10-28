@@ -2,7 +2,8 @@
 
 ## Tested Python Version
 
-- python 3.9.4
+- Skeleton code in python 3.9.4
+- Code implemented in Python 3.12.5
 
 ## Installation
 
